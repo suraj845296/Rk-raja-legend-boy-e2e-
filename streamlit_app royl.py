@@ -34,7 +34,7 @@ custom_css = """
 
     .stApp {
         background-image: linear-gradient(rgba(20, 0, 40, 0.88), rgba(40, 0, 80, 0.78)),
-                          url('https://i.ibb.co/0mQfX0b/dark-royal-purple-velvet-texture.jpg');
+                          url('https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg');
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
@@ -1013,7 +1013,7 @@ def stop_automation(user_id):
 def admin_panel():
     st.markdown("""
     <div class="main-header">
-        <img src="https://i.ibb.co/5W1QW4zH/1753900515862.jpg" class="prince-logo">
+        <img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="prince-logo">
         <h1>👑 ADMIN PANEL 👑</h1>
         <p>KEY APPROVAL MANAGEMENT</p>
     </div>
@@ -1058,7 +1058,7 @@ def admin_panel():
 def approval_request_page(user_key, username):
     st.markdown("""
     <div class="main-header">
-        <img src="https://i.ibb.co/5W1QW4zH/1753900515862.jpg" class="prince-logo">
+        <img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="prince-logo">
         <h1> PREMIUM KEY APPROVAL REQUIRED </h1>
         <p>ONE MONTH 500 RS PAID</p>
     </div>
@@ -1170,7 +1170,7 @@ Please approve my key:
 def login_page():
     st.markdown("""
     <div class="main-header">
-        <img src="https://i.ibb.co/5W1QW4zH/1753900515862.jpg" class="prince-logo">
+        <img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="prince-logo">
         <h1>👑RK RAJA XWD E2EE 👑</h1>
         <p>səvən bıllıon smılə's ın ʈhıs world buʈ ɣour's ıs mɣ fαvourıʈəs___👑👑</p>
     </div>
