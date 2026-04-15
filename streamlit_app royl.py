@@ -34,7 +34,7 @@ custom_css = """
 
     .stApp {
         background-image: linear-gradient(rgba(20, 0, 40, 0.88), rgba(40, 0, 80, 0.78)),
-                          url('https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg');
+                          url('https://i.ibb.co/Q7Tcg8Mm/IMG-20260415-WA0014.jpg');
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
