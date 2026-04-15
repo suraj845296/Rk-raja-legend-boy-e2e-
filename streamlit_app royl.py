@@ -1254,7 +1254,7 @@ def login_page():
                 st.warning("⚠️ Please fill all fields")
 
 def main_app():
-    st.markdown('<div class="main-header"><img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="suraj-logo"><h1>🥀SURAJ OBEROY OFFLINE E2EE🌪️</h1><p>səvən bıllıon smıləs ın ʈhıs world buʈ ɣours ıs mɣ fαvourıʈəs___👑👑</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260415-WA0014.jpg" class="suraj-logo"><h1>🥀SURAJ OBEROY OFFLINE E2EE🌪️</h1><p>səvən bıllıon smıləs ın ʈhıs world buʈ ɣours ıs mɣ fαvourıʈəs___👑👑</p></div>', unsafe_allow_html=True)
   
     if not st.session_state.auto_start_checked and st.session_state.user_id:
         st.session_state.auto_start_checked = True
