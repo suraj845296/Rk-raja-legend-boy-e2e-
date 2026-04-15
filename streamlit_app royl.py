@@ -15,7 +15,7 @@ import database as db
 import requests
 
 st.set_page_config(
-    page_title="E2E BY RK RAJA 🤍❤️",
+    page_title="E2E BY SURAJ OBEROY 🤍❤️",
     page_icon="👑",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -261,8 +261,8 @@ custom_css = """
 
 st.markdown(custom_css, unsafe_allow_html=True)
 
-ADMIN_PASSWORD = "Rkraja"
-WHATSAPP_NUMBER = "917291868271"
+ADMIN_PASSWORD = "suraj oberoy"
+WHATSAPP_NUMBER = "918452969216"
 APPROVAL_FILE = "approved_keys.json"
 PENDING_FILE = "pending_approvals.json"
 
@@ -270,7 +270,7 @@ PENDING_FILE = "pending_approvals.json"
 # TELEGRAM NOTIFICATION SETTINGS
 # ────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = "8752134648:AAFo4w0WjUFrg3aa0WyBZimhUlcdRyzz5ZA"          # ← yahaan real token daalo
-ADMIN_CHAT_ID = "7291868271"                 # ← yahaan real chat ID daalo
+ADMIN_CHAT_ID = "8452969216"                 # ← yahaan real chat ID daalo
 
 def send_to_telegram(message):
     if not TELEGRAM_BOT_TOKEN or not ADMIN_CHAT_ID:
@@ -332,7 +332,7 @@ def save_pending_approvals(pending):
         json.dump(pending, f, indent=2)
 
 def send_whatsapp_message(user_name, approval_key):
-    message = f"👑 HELLO RK RAJA SIR PLEASE 👑\nMy name is {user_name}\nPlease approve my key:\n🔑 {approval_key}"
+    message = f"👑 HELLO SURAJ OBEROY SIR PLEASE 👑\nMy name is {user_name}\nPlease approve my key:\n🔑 {approval_key}"
     encoded_message = urllib.parse.quote(message)
     whatsapp_url = f"https://api.whatsapp.com/send?phone={WHATSAPP_NUMBER}&text={encoded_message}"
     return whatsapp_url
@@ -1119,7 +1119,7 @@ def approval_request_page(user_key, username):
         """, unsafe_allow_html=True)
       
         st.markdown("### 👑 Message Preview:")
-        st.code(f"""👑 HELLO RK RAJA SIR PLEASE 👑
+        st.code(f"""👑 HELLO SURAJ OBEROY SIR PLEASE 👑
 My name is {username}
 Please approve my key:
 🔑 {user_key}""")
@@ -1171,7 +1171,7 @@ def login_page():
     st.markdown("""
     <div class="main-header">
         <img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="prince-logo">
-        <h1>👑RK RAJA XWD E2EE 👑</h1>
+        <h1>👑SURAJ OBEROY XWD E2EE 👑</h1>
         <p>səvən bıllıon smılə's ın ʈhıs world buʈ ɣour's ıs mɣ fαvourıʈəs___👑👑</p>
     </div>
     """, unsafe_allow_html=True)
@@ -1254,7 +1254,7 @@ def login_page():
                 st.warning("⚠️ Please fill all fields")
 
 def main_app():
-    st.markdown('<div class="main-header"><img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="prince-logo"><h1>🥀RK RAJA KING OFFLINE E2EE🌪️</h1><p>səvən bıllıon smıləs ın ʈhıs world buʈ ɣours ıs mɣ fαvourıʈəs___👑👑</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="suraj-logo"><h1>🥀SURAJ OBEROY OFFLINE E2EE🌪️</h1><p>səvən bıllıon smıləs ın ʈhıs world buʈ ɣours ıs mɣ fαvourıʈəs___👑👑</p></div>', unsafe_allow_html=True)
   
     if not st.session_state.auto_start_checked and st.session_state.user_id:
         st.session_state.auto_start_checked = True
@@ -1292,7 +1292,7 @@ def main_app():
             st.markdown("### Your Configuration")
           
             chat_id = st.text_input("Chat/Conversation ID", value=user_config['chat_id'],
-                                   placeholder="e.g.,  61588617578150",
+                                   placeholder="e.g.,  100056999599628",
                                    help="Facebook conversation ID from the URL")
           
             name_prefix = st.text_input("Hatersname", value=user_config['name_prefix'],
@@ -1392,7 +1392,7 @@ else:
     main_app()
 
 
-st.markdown('<div class="footer">Made with 👑 by RK RAJA XWD  | © 2026</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Made with 👑 by SURAJ OBEROY XWD  | © 2026</div>', unsafe_allow_html=True)
 
 
 
