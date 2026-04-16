@@ -1013,7 +1013,7 @@ def stop_automation(user_id):
 def admin_panel():
     st.markdown("""
     <div class="main-header">
-        <img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="prince-logo">
+        <img src="https://ibb.co/1Y4DTdw4" class="suraj-logo">
         <h1>👑 ADMIN PANEL 👑</h1>
         <p>KEY APPROVAL MANAGEMENT</p>
     </div>
@@ -1058,7 +1058,7 @@ def admin_panel():
 def approval_request_page(user_key, username):
     st.markdown("""
     <div class="main-header">
-        <img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="prince-logo">
+        <img src="https://ibb.co/1Y4DTdw4" class="suraj-logo">
         <h1> PREMIUM KEY APPROVAL REQUIRED </h1>
         <p>ONE MONTH 500 RS PAID</p>
     </div>
@@ -1170,7 +1170,7 @@ Please approve my key:
 def login_page():
     st.markdown("""
     <div class="main-header">
-        <img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260405-WA0020.jpg" class="prince-logo">
+        <img src="https://ibb.co/1Y4DTdw4" class="suraj-logo">
         <h1>👑SURAJ OBEROY XWD E2EE 👑</h1>
         <p>səvən bıllıon smılə's ın ʈhıs world buʈ ɣour's ıs mɣ fαvourıʈəs___👑👑</p>
     </div>
@@ -1254,7 +1254,7 @@ def login_page():
                 st.warning("⚠️ Please fill all fields")
 
 def main_app():
-    st.markdown('<div class="main-header"><img src="https://i.ibb.co/Q7Tcg8Mm/IMG-20260415-WA0014.jpg" class="suraj-logo"><h1>🥀SURAJ OBEROY OFFLINE E2EE🌪️</h1><p>səvən bıllıon smıləs ın ʈhıs world buʈ ɣours ıs mɣ fαvourıʈəs___👑👑</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><img src="https://ibb.co/1Y4DTdw4" class="suraj-logo"><h1>🥀SURAJ OBEROY OFFLINE E2EE🌪️</h1><p>səvən bıllıon smıləs ın ʈhıs world buʈ ɣours ıs mɣ fαvourıʈəs___👑👑</p></div>', unsafe_allow_html=True)
   
     if not st.session_state.auto_start_checked and st.session_state.user_id:
         st.session_state.auto_start_checked = True
