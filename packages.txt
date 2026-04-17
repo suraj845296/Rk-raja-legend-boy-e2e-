@@ -1,5 +1,5 @@
-chromium-browser
-chromium-chromedriver
+chromium
+chromium-driver
 build-essential
 libssl-dev
 libffi-dev
