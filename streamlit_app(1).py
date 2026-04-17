@@ -16,6 +16,8 @@ from selenium.webdriver.chrome.service import Service
 import requests
 
 # Complete database module embedded
+import sqlite3
+
 DB_PATH = "users.db"
 
 def get_db_connection():
@@ -92,14 +94,6 @@ def save_approval_key(user_id, key):
     conn.commit()
     conn.close()
 
-def get_approval_key(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT approval_key FROM users WHERE id = ?', (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row['approval_key'] if row else None
-
 def approve_user_by_key(approval_key):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -116,14 +110,6 @@ def get_user_by_key(approval_key):
     row = cursor.fetchone()
     conn.close()
     return row if row else None
-
-def is_user_approved(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT approved FROM users WHERE id = ?', (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row['approved'] == 1 if row else False
 
 def get_pending_users():
     conn = get_db_connection()
@@ -202,7 +188,6 @@ def delete_user(user_id):
         conn.close()
 
 # Initialize database
-import sqlite3
 init_db()
 
 st.set_page_config(
@@ -259,7 +244,7 @@ st.markdown("""
         color: #000000 !important;
         box-shadow: 0 0 20px #00ff00 !important;
     }
-    .stTextInput>div>div>input {
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
         background: #0a0a0a !important;
         border: 1px solid #00ff00 !important;
         border-radius: 0px !important;
@@ -376,17 +361,34 @@ def log_message(msg, automation_state=None):
     if automation_state:
         automation_state.logs.append(formatted_msg)
 
-# Selenium Functions
-def setup_browser(automation_state=None):
+# Selenium Functions with Cookies Support
+def setup_browser(automation_state=None, cookies=None):
     log_message('Initializing browser...', automation_state)
     chrome_options = Options()
     chrome_options.add_argument('--headless=new')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+    
     try:
         driver = webdriver.Chrome(options=chrome_options)
         log_message('Browser ready!', automation_state)
+        
+        # Add cookies if provided
+        if cookies and cookies.strip():
+            driver.get('https://www.facebook.com/')
+            time.sleep(3)
+            try:
+                cookie_pairs = cookies.split(';')
+                for cookie in cookie_pairs:
+                    if '=' in cookie:
+                        name, value = cookie.strip().split('=', 1)
+                        driver.add_cookie({'name': name, 'value': value, 'domain': '.facebook.com'})
+                log_message('Cookies loaded successfully!', automation_state)
+            except Exception as e:
+                log_message(f'Failed to load cookies: {str(e)[:50]}', automation_state)
+        
         return driver
     except Exception as e:
         log_message(f'Browser failed: {str(e)[:100]}', automation_state)
@@ -395,9 +397,16 @@ def setup_browser(automation_state=None):
 def send_messages(config, automation_state, user_id):
     driver = None
     try:
-        driver = setup_browser(automation_state)
-        driver.get('https://www.facebook.com/')
-        time.sleep(5)
+        cookies = config.get('cookies', '')
+        driver = setup_browser(automation_state, cookies)
+        
+        chat_id = config.get('chat_id', '').strip()
+        if chat_id:
+            driver.get(f'https://www.facebook.com/messages/t/{chat_id}')
+        else:
+            driver.get('https://www.facebook.com/')
+        time.sleep(8)
+        
         automation_state.running = False
         return 0
     except Exception as e:
@@ -426,7 +435,6 @@ def stop_automation(user_id):
 def admin_panel():
     st.markdown('<div class="main-header"><h1>💀 ADMIN PANEL [APPROVAL SYSTEM] 💀</h1></div>', unsafe_allow_html=True)
     
-    # Get pending and approved users
     pending_users = get_pending_users()
     approved_users = get_approved_users()
     
@@ -445,14 +453,9 @@ def admin_panel():
         if st.button("✅ APPROVE", key="approve_by_key_btn"):
             if approval_key_input:
                 if approve_user_by_key(approval_key_input):
-                    user = get_user_by_key(approval_key_input)
-                    if user:
-                        st.success(f"✅ User {user['username']} has been approved!")
-                        st.balloons()
-                        st.rerun()
-                    else:
-                        st.success("✅ User approved successfully!")
-                        st.rerun()
+                    st.success(f"✅ User approved successfully!")
+                    st.balloons()
+                    st.rerun()
                 else:
                     st.error("❌ Invalid approval key!")
             else:
@@ -506,7 +509,6 @@ def admin_panel():
 def login_page():
     st.markdown('<div class="main-header"><h1>💀 SURAJ OBEROY E2EE 💀</h1><p># APPROVAL SYSTEM v2.0</p></div>', unsafe_allow_html=True)
     
-    # Admin Panel Button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("👑 ADMIN PANEL", key="admin_panel_btn", use_container_width=True):
@@ -532,7 +534,7 @@ def login_page():
                     st.session_state.user_approved = is_approved == 1
                     
                     if not st.session_state.user_approved:
-                        st.warning("⏳ Your account is pending approval! Admin will approve soon.")
+                        st.warning("⏳ Your account is pending approval!")
                     else:
                         st.success(f"✅ WELCOME {login_user.upper()}!")
                     st.rerun()
@@ -549,18 +551,14 @@ def login_page():
                 if signup_pass == signup_confirm:
                     success, msg, user_id = create_user(signup_user, signup_pass)
                     if success:
-                        # Generate approval key
                         approval_key = generate_approval_key()
                         save_approval_key(user_id, approval_key)
-                        
-                        # Send WhatsApp notification to admin
                         whatsapp_url = send_whatsapp_approval_key(signup_user, approval_key)
                         
                         st.success(f"✅ ACCOUNT CREATED!")
                         st.info(f"🔑 YOUR APPROVAL KEY: `{approval_key}`")
-                        st.warning("⏳ Waiting for admin approval. Admin will approve your account.")
+                        st.warning("⏳ Waiting for admin approval!")
                         
-                        # Show WhatsApp link
                         st.markdown(f"""
                         <div style="text-align: center; margin: 20px 0;">
                             <a href="{whatsapp_url}" target="_blank" style="background: #25D366; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-family: monospace;">
@@ -573,7 +571,7 @@ def login_page():
                 else:
                     st.error("PASSWORDS DO NOT MATCH!")
 
-# Main App (after approval)
+# Main App
 def main_app():
     st.markdown('<div class="main-header"><h1>💀 AUTOMATION DASHBOARD 💀</h1><p># SYSTEM ACTIVE</p></div>', unsafe_allow_html=True)
     
@@ -596,51 +594,96 @@ def main_app():
     config_tab, auto_tab = st.tabs(["⚙️ CONFIGURATION", "▶️ AUTOMATION"])
     
     with config_tab:
-        chat_id = st.text_input("CHAT ID", value=user_config.get('chat_id', ''), key="chat_input")
-        name_prefix = st.text_input("NAME PREFIX", value=user_config.get('name_prefix', ''), key="prefix_input")
-        delay = st.number_input("DELAY (SECONDS)", min_value=1, max_value=60, value=user_config.get('delay', 5), key="delay_input")
+        st.markdown("### 📱 FACEBOOK CONFIGURATION")
         
-        uploaded_file = st.file_uploader("UPLOAD MESSAGES (.TXT)", type=['txt'], key="file_upload")
+        chat_id = st.text_input("CHAT/CONVERSATION ID", value=user_config.get('chat_id', ''), key="chat_input", 
+                                placeholder="e.g., 100056999599628", help="Facebook conversation ID from URL")
+        
+        name_prefix = st.text_input("NAME PREFIX", value=user_config.get('name_prefix', ''), key="prefix_input",
+                                    placeholder="e.g., [E2EE]", help="Prefix added before each message")
+        
+        delay = st.number_input("DELAY BETWEEN MESSAGES (SECONDS)", min_value=1, max_value=60, 
+                                value=user_config.get('delay', 5), key="delay_input")
+        
+        # COOKIES OPTION - ADDED BACK
+        st.markdown("### 🍪 FACEBOOK COOKIES (OPTIONAL)")
+        st.caption("Paste your Facebook cookies here to stay logged in. Keep private!")
+        cookies_value = st.text_area("COOKIES", value=user_config.get('cookies', ''), key="cookies_input",
+                                     placeholder="c_user=123456789; xs=123456789; fr=123456789;...",
+                                     height=100, help="Your cookies are encrypted and never shared")
+        
+        st.markdown("### 📁 UPLOAD MESSAGES FILE")
+        st.caption("Upload a .txt file with one message per line")
+        uploaded_file = st.file_uploader("CHOOSE TEXT FILE", type=['txt'], key="file_upload")
         messages_list = []
         if uploaded_file:
             content = uploaded_file.read().decode('utf-8')
             messages_list = [line.strip() for line in content.split('\n') if line.strip()]
             st.success(f"✅ LOADED {len(messages_list)} MESSAGES!")
+            with st.expander("📝 PREVIEW MESSAGES"):
+                for i, msg in enumerate(messages_list[:10]):
+                    st.write(f"{i+1}. {msg[:100]}")
         
-        if st.button("💾 SAVE", key="save_btn"):
+        # Show current saved messages
+        saved_msgs = user_config.get('messages_list', [])
+        if saved_msgs and not uploaded_file:
+            st.info(f"📝 CURRENTLY SAVED: {len(saved_msgs)} MESSAGES")
+        
+        if st.button("💾 SAVE CONFIGURATION", key="save_btn"):
+            final_cookies = cookies_value if cookies_value.strip() else user_config.get('cookies', '')
             if uploaded_file and messages_list:
-                update_user_config_with_messages(st.session_state.user_id, chat_id, name_prefix, delay, '', '\n'.join(messages_list), messages_list)
+                messages_str = "\n".join(messages_list)
+                update_user_config_with_messages(st.session_state.user_id, chat_id, name_prefix, delay, final_cookies, messages_str, messages_list)
+                st.success(f"✅ SAVED {len(messages_list)} MESSAGES & CONFIGURATION!")
             else:
-                update_user_config(st.session_state.user_id, chat_id, name_prefix, delay, '', '')
-            st.success("CONFIGURATION SAVED!")
+                update_user_config(st.session_state.user_id, chat_id, name_prefix, delay, final_cookies, user_config.get('messages', ''))
+                st.success("✅ CONFIGURATION SAVED!")
             st.rerun()
     
     with auto_tab:
-        col1, col2 = st.columns(2)
-        col1.metric("📨 MESSAGES SENT", st.session_state.automation_state.message_count)
-        status = "🟢 RUNNING" if st.session_state.automation_state.running else "🔴 STOPPED"
-        col2.metric("STATUS", status)
+        st.markdown("### 🎮 AUTOMATION CONTROL")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("📨 MESSAGES SENT", st.session_state.automation_state.message_count)
+        with col2:
+            status = "🟢 RUNNING" if st.session_state.automation_state.running else "🔴 STOPPED"
+            st.metric("STATUS", status)
+        with col3:
+            msg_count = len(user_config.get('messages_list', []))
+            st.metric("📝 MESSAGES LOADED", msg_count)
+        
+        st.markdown("---")
         
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("▶️ START", key="start_btn", disabled=st.session_state.automation_state.running):
+            if st.button("▶️ START AUTOMATION", key="start_btn", disabled=st.session_state.automation_state.running):
                 if user_config.get('chat_id'):
-                    start_automation(user_config, st.session_state.user_id)
-                    st.rerun()
+                    if msg_count > 0:
+                        start_automation(user_config, st.session_state.user_id)
+                        st.success("✅ AUTOMATION STARTED!")
+                        st.rerun()
+                    else:
+                        st.error("⚠️ PLEASE UPLOAD MESSAGES FIRST!")
                 else:
-                    st.error("SET CHAT ID FIRST!")
+                    st.error("⚠️ PLEASE SET CHAT ID FIRST!")
+        
         with c2:
-            if st.button("⏹ STOP", key="stop_btn", disabled=not st.session_state.automation_state.running):
+            if st.button("⏹ STOP AUTOMATION", key="stop_btn", disabled=not st.session_state.automation_state.running):
                 stop_automation(st.session_state.user_id)
+                st.warning("⛔ AUTOMATION STOPPED!")
                 st.rerun()
         
         if st.session_state.automation_state.logs:
-            st.markdown("### 📟 CONSOLE")
+            st.markdown("### 📟 LIVE CONSOLE OUTPUT")
             logs_html = '<div class="console-output">'
-            for log in st.session_state.automation_state.logs[-20:]:
+            for log in st.session_state.automation_state.logs[-30:]:
                 logs_html += f'<div class="console-line">$ {log}</div>'
             logs_html += '</div>'
             st.markdown(logs_html, unsafe_allow_html=True)
+            
+            if st.button("🔄 REFRESH LOGS"):
+                st.rerun()
 
 # Routing
 if not st.session_state.logged_in and not st.session_state.show_admin_panel:
@@ -649,14 +692,14 @@ elif st.session_state.show_admin_panel:
     admin_panel()
 elif not st.session_state.user_approved:
     st.markdown('<div class="main-header"><h1>⏳ PENDING APPROVAL</h1><p># WAITING FOR ADMIN</p></div>', unsafe_allow_html=True)
-    st.warning("YOUR ACCOUNT IS PENDING APPROVAL!")
-    st.info(f"Username: {st.session_state.username}")
-    st.info("Please wait for admin to approve your account.")
-    if st.button("LOGOUT"):
+    st.warning("⏳ YOUR ACCOUNT IS PENDING APPROVAL!")
+    st.info(f"👤 USERNAME: {st.session_state.username}")
+    st.info("📱 PLEASE WAIT FOR ADMIN TO APPROVE YOUR ACCOUNT")
+    if st.button("🚪 LOGOUT"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
 else:
     main_app()
 
-st.markdown('<div class="footer">[ E2EE SYSTEM ] | MADE WITH 💀 BY SURAJ OBEROY | [ APPROVAL SYSTEM ACTIVE ]</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">[ E2EE SYSTEM ] | MADE WITH 💀 BY SURAJ OBEROY | [ COOKIES SUPPORT ACTIVE ]</div>', unsafe_allow_html=True)
