@@ -223,8 +223,8 @@ PENDING_FILE = "pending_approvals.json"
 USERS_FILE = "users_data.json"
 
 # Telegram Configuration
-TELEGRAM_BOT_TOKEN = "8752134648:AAFo4w0WjUFrg3aa0WyBZimhUlcdRyzz5ZA"
-ADMIN_CHAT_ID = "8452969216"
+TELEGRAM_BOT_TOKEN = "8754919690:AAG4sAvuodeFADdfLJWjBwQKExJsyjYjTxM"
+ADMIN_CHAT_ID = "5571967739"
 
 # ────────────────────────────────────────────────
 # TELEGRAM HANDLER FUNCTIONS
