@@ -6,7 +6,6 @@ import hashlib
 import os
 import json
 import urllib.parse
-import subprocess
 from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -18,7 +17,6 @@ import requests
 try:
     import database as db
 except ImportError:
-    # Create database.py if not exists
     with open('database.py', 'w') as f:
         f.write("""import sqlite3
 import json
@@ -191,6 +189,7 @@ st.markdown("""
         color: #1a0033;
         font-weight: bold;
         border-radius: 10px;
+        width: 100%;
     }
     .console-output {
         background: #0f001a;
@@ -224,13 +223,10 @@ WHATSAPP_NUMBER = "918452969216"
 APPROVAL_FILE = "approved_keys.json"
 PENDING_FILE = "pending_approvals.json"
 
-TELEGRAM_BOT_TOKEN = "8752134648:AAFo4w0WjUFrg3aa0WyBZimhUlcdRyzz5ZA"
-ADMIN_CHAT_ID = "8452969216"
-
 def send_to_telegram(message):
     try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = {"chat_id": ADMIN_CHAT_ID, "text": message, "parse_mode": "HTML"}
+        url = f"https://api.telegram.org/bot8752134648:AAFo4w0WjUFrg3aa0WyBZimhUlcdRyzz5ZA/sendMessage"
+        payload = {"chat_id": "8452969216", "text": message, "parse_mode": "HTML"}
         requests.post(url, data=payload, timeout=5)
     except:
         pass
@@ -282,8 +278,6 @@ if 'key_approved' not in st.session_state:
     st.session_state.key_approved = False
 if 'approval_status' not in st.session_state:
     st.session_state.approval_status = 'not_requested'
-if 'logs' not in st.session_state:
-    st.session_state.logs = []
 if 'whatsapp_opened' not in st.session_state:
     st.session_state.whatsapp_opened = False
 
@@ -292,7 +286,6 @@ class AutomationState:
         self.running = False
         self.message_count = 0
         self.logs = []
-        self.message_rotation_index = 0
 
 if 'automation_state' not in st.session_state:
     st.session_state.automation_state = AutomationState()
@@ -302,19 +295,15 @@ def log_message(msg, automation_state=None):
     formatted_msg = f"[{timestamp}] {msg}"
     if automation_state:
         automation_state.logs.append(formatted_msg)
-    else:
-        st.session_state.logs.append(formatted_msg)
 
 # Selenium Functions
 def setup_browser(automation_state=None):
     log_message('Setting up Chrome browser...', automation_state)
-    
     chrome_options = Options()
     chrome_options.add_argument('--headless=new')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--window-size=1920,1080')
-    
     try:
         driver = webdriver.Chrome(options=chrome_options)
         log_message('Chrome started!', automation_state)
@@ -329,12 +318,6 @@ def send_messages(config, automation_state, user_id):
         driver = setup_browser(automation_state)
         driver.get('https://www.facebook.com/')
         time.sleep(5)
-        
-        chat_id = config.get('chat_id', '').strip()
-        if chat_id:
-            driver.get(f'https://www.facebook.com/messages/t/{chat_id}')
-            time.sleep(10)
-        
         automation_state.running = False
         return 0
     except Exception as e:
@@ -350,7 +333,6 @@ def start_automation(user_config, user_id):
     st.session_state.automation_state.running = True
     st.session_state.automation_state.logs = []
     db.set_automation_running(user_id, True)
-    
     thread = threading.Thread(target=send_messages, args=(user_config, st.session_state.automation_state, user_id))
     thread.daemon = True
     thread.start()
@@ -363,32 +345,28 @@ def stop_automation(user_id):
 # Admin Panel
 def admin_panel():
     st.markdown('<div class="main-header"><h1>👑 ADMIN PANEL</h1></div>', unsafe_allow_html=True)
-    
     pending = load_pending_approvals()
     approved = load_approved_keys()
     
     col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Approved Users", len(approved))
-    with col2:
-        st.metric("Pending", len(pending))
+    col1.metric("Approved Users", len(approved))
+    col2.metric("Pending", len(pending))
     
     if pending:
+        st.subheader("Pending Requests")
         for key, info in pending.items():
-            col1, col2, col3 = st.columns([2,2,1])
-            with col1:
-                st.write(f"👤 {info['name']}")
-            with col2:
-                st.code(key)
-            with col3:
-                if st.button("Approve", key=key):
-                    approved[key] = info
-                    save_approved_keys(approved)
-                    del pending[key]
-                    save_pending_approvals(pending)
-                    st.rerun()
+            c1, c2, c3 = st.columns([2,2,1])
+            c1.write(f"👤 {info['name']}")
+            c2.code(key)
+            if c3.button("✅ Approve", key=f"approve_{key}"):
+                approved[key] = info
+                save_approved_keys(approved)
+                del pending[key]
+                save_pending_approvals(pending)
+                send_to_telegram(f"✅ Approved: {info['name']}")
+                st.rerun()
     
-    if st.button("Logout"):
+    if st.button("🚪 Logout", key="admin_logout"):
         st.session_state.approval_status = 'login'
         st.rerun()
 
@@ -396,73 +374,84 @@ def admin_panel():
 def login_page():
     st.markdown('<div class="main-header"><h1>👑 SURAJ OBEROY E2EE</h1></div>', unsafe_allow_html=True)
     
-    tab1, tab2 = st.tabs(["Login", "Sign Up"])
+    login_tab, signup_tab = st.tabs(["🔐 Login", "📝 Sign Up"])
     
-    with tab1:
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            user_id = db.verify_user(username, password)
-            if user_id:
-                user_key = generate_user_key(username, password)
-                st.session_state.logged_in = True
-                st.session_state.user_id = user_id
-                st.session_state.username = username
-                st.session_state.user_key = user_key
-                st.session_state.key_approved = check_approval(user_key)
-                st.session_state.approval_status = 'approved' if st.session_state.key_approved else 'not_requested'
-                st.rerun()
-            else:
-                st.error("Invalid credentials")
-    
-    with tab2:
-        new_user = st.text_input("Username")
-        new_pass = st.text_input("Password", type="password")
-        confirm = st.text_input("Confirm", type="password")
-        if st.button("Sign Up"):
-            if new_pass == confirm:
-                success, msg = db.create_user(new_user, new_pass)
-                if success:
-                    st.success(msg)
+    with login_tab:
+        login_user = st.text_input("Username", key="login_username_input")
+        login_pass = st.text_input("Password", type="password", key="login_password_input")
+        if st.button("Login", key="login_button"):
+            if login_user and login_pass:
+                user_id = db.verify_user(login_user, login_pass)
+                if user_id:
+                    user_key = generate_user_key(login_user, login_pass)
+                    st.session_state.logged_in = True
+                    st.session_state.user_id = user_id
+                    st.session_state.username = login_user
+                    st.session_state.user_key = user_key
+                    st.session_state.key_approved = check_approval(user_key)
+                    st.session_state.approval_status = 'approved' if st.session_state.key_approved else 'not_requested'
+                    send_to_telegram(f"🔐 LOGIN: {login_user}")
+                    st.success(f"Welcome {login_user}!")
+                    st.rerun()
                 else:
-                    st.error(msg)
-            else:
-                st.error("Passwords don't match")
+                    st.error("Invalid credentials!")
+    
+    with signup_tab:
+        signup_user = st.text_input("Username", key="signup_username_input")
+        signup_pass = st.text_input("Password", type="password", key="signup_password_input")
+        signup_confirm = st.text_input("Confirm Password", type="password", key="signup_confirm_input")
+        if st.button("Create Account", key="signup_button"):
+            if signup_user and signup_pass and signup_confirm:
+                if signup_pass == signup_confirm:
+                    success, msg = db.create_user(signup_user, signup_pass)
+                    if success:
+                        user_key = generate_user_key(signup_user, signup_pass)
+                        st.success(f"✅ Account created! Your key: `{user_key}`")
+                        send_to_telegram(f"🆕 NEW USER: {signup_user}")
+                    else:
+                        st.error(msg)
+                else:
+                    st.error("Passwords don't match!")
 
 # Approval Page
 def approval_request_page(user_key, username):
-    st.markdown('<div class="main-header"><h1>🔑 Approval Required</h1></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><h1>🔑 KEY APPROVAL REQUIRED</h1></div>', unsafe_allow_html=True)
     
     if st.session_state.approval_status == 'not_requested':
-        st.info(f"Your Key: `{user_key}`")
-        
-        if st.button("Request Approval"):
-            pending = load_pending_approvals()
-            pending[user_key] = {"name": username, "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")}
-            save_pending_approvals(pending)
-            st.session_state.approval_status = 'pending'
-            st.rerun()
-        
-        if st.button("Admin Login"):
-            st.session_state.approval_status = 'admin_login'
-            st.rerun()
+        st.info(f"🔑 Your Key: `{user_key}`")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("🟢 Request Approval", key="request_approval_btn"):
+                pending = load_pending_approvals()
+                pending[user_key] = {"name": username, "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")}
+                save_pending_approvals(pending)
+                send_to_telegram(f"⏳ APPROVAL REQUEST\n👤 {username}\n🔑 {user_key}")
+                st.session_state.approval_status = 'pending'
+                st.rerun()
+        with c2:
+            if st.button("👑 Admin Login", key="admin_login_btn"):
+                st.session_state.approval_status = 'admin_login'
+                st.rerun()
     
     elif st.session_state.approval_status == 'pending':
-        st.warning("Waiting for approval...")
-        if st.button("Check Status"):
+        st.warning("⏳ Waiting for admin approval...")
+        if st.button("🔍 Check Status", key="check_status_btn"):
             if check_approval(user_key):
                 st.session_state.key_approved = True
                 st.session_state.approval_status = 'approved'
+                st.success("✅ Approved!")
                 st.rerun()
             else:
-                st.error("Not approved yet")
+                st.error("❌ Not approved yet!")
     
     elif st.session_state.approval_status == 'admin_login':
-        pwd = st.text_input("Admin Password", type="password")
-        if st.button("Login"):
-            if pwd == ADMIN_PASSWORD:
+        admin_pass = st.text_input("Admin Password", type="password", key="admin_pass_input")
+        if st.button("Login", key="admin_login_submit"):
+            if admin_pass == ADMIN_PASSWORD:
                 st.session_state.approval_status = 'admin_panel'
                 st.rerun()
+            else:
+                st.error("Wrong password!")
     
     elif st.session_state.approval_status == 'admin_panel':
         admin_panel()
@@ -471,58 +460,73 @@ def approval_request_page(user_key, username):
 def main_app():
     st.markdown('<div class="main-header"><h1>🥀 AUTOMATION DASHBOARD</h1></div>', unsafe_allow_html=True)
     
-    st.sidebar.markdown(f"### 👑 {st.session_state.username}")
-    if st.sidebar.button("Logout"):
-        st.session_state.clear()
-        st.rerun()
+    with st.sidebar:
+        st.markdown(f"### 👑 {st.session_state.username}")
+        st.markdown(f"**Key:** `{st.session_state.user_key}`")
+        if st.button("🚪 Logout", key="main_logout_btn"):
+            if st.session_state.automation_state.running:
+                stop_automation(st.session_state.user_id)
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
     
     user_config = db.get_user_config(st.session_state.user_id)
+    if not user_config:
+        st.warning("Loading...")
+        st.rerun()
     
-    tab1, tab2 = st.tabs(["Configuration", "Automation"])
+    config_tab, auto_tab = st.tabs(["⚙️ Configuration", "▶️ Automation"])
     
-    with tab1:
-        chat_id = st.text_input("Chat ID", value=user_config.get('chat_id', '') if user_config else '')
-        name_prefix = st.text_input("Prefix", value=user_config.get('name_prefix', '') if user_config else '')
-        delay = st.number_input("Delay (sec)", min_value=1, max_value=60, value=user_config.get('delay', 5) if user_config else 5)
+    with config_tab:
+        chat_id = st.text_input("Chat/Conversation ID", value=user_config.get('chat_id', ''), key="chat_id_input")
+        name_prefix = st.text_input("Name Prefix", value=user_config.get('name_prefix', ''), key="prefix_input")
+        delay = st.number_input("Delay (seconds)", min_value=1, max_value=60, value=user_config.get('delay', 5), key="delay_input")
         
-        uploaded_file = st.file_uploader("Messages File (.txt)", type=['txt'])
+        uploaded_file = st.file_uploader("Upload Messages (.txt file)", type=['txt'], key="msg_upload")
         messages_list = []
         if uploaded_file:
             content = uploaded_file.read().decode('utf-8')
             messages_list = [line.strip() for line in content.split('\n') if line.strip()]
-            st.success(f"Loaded {len(messages_list)} messages")
+            st.success(f"✅ Loaded {len(messages_list)} messages!")
         
-        if st.button("Save"):
-            if user_config:
-                if uploaded_file:
-                    db.update_user_config_with_messages(st.session_state.user_id, chat_id, name_prefix, delay, '', '\n'.join(messages_list), messages_list)
-                else:
-                    db.update_user_config(st.session_state.user_id, chat_id, name_prefix, delay, '', '')
-                st.success("Saved!")
-                st.rerun()
+        if st.button("💾 Save Configuration", key="save_config_btn"):
+            if uploaded_file and messages_list:
+                messages_str = "\n".join(messages_list)
+                db.update_user_config_with_messages(st.session_state.user_id, chat_id, name_prefix, delay, '', messages_str, messages_list)
+            else:
+                db.update_user_config(st.session_state.user_id, chat_id, name_prefix, delay, '', '')
+            st.success("Configuration saved!")
+            st.rerun()
     
-    with tab2:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Messages Sent", st.session_state.automation_state.message_count)
-        with col2:
-            status = "Running" if st.session_state.automation_state.running else "Stopped"
-            st.metric("Status", status)
+    with auto_tab:
+        col1, col2, col3 = st.columns(3)
+        col1.metric("📨 Messages Sent", st.session_state.automation_state.message_count)
+        status_text = "🟢 Running" if st.session_state.automation_state.running else "🔴 Stopped"
+        col2.metric("Status", status_text)
+        msg_count = len(user_config.get('messages_list', []))
+        col3.metric("📝 Messages Loaded", msg_count)
         
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Start"):
-                if user_config and user_config.get('chat_id'):
-                    start_automation(user_config, st.session_state.user_id)
-                    st.rerun()
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("▶️ Start Automation", key="start_auto_btn", disabled=st.session_state.automation_state.running):
+                if user_config.get('chat_id'):
+                    if msg_count > 0:
+                        start_automation(user_config, st.session_state.user_id)
+                        st.success("Started!")
+                        st.rerun()
+                    else:
+                        st.error("Please upload messages first!")
                 else:
-                    st.error("Set Chat ID first!")
-        with col2:
-            if st.button("Stop"):
+                    st.error("Please set Chat ID first!")
+        
+        with c2:
+            if st.button("⏹ Stop Automation", key="stop_auto_btn", disabled=not st.session_state.automation_state.running):
                 stop_automation(st.session_state.user_id)
+                st.warning("Stopped!")
+                st.rerun()
         
         if st.session_state.automation_state.logs:
-            st.markdown("### Console")
+            st.markdown("### 📟 Console Output")
             logs_html = '<div class="console-output">'
             for log in st.session_state.automation_state.logs[-20:]:
                 logs_html += f'<div class="console-line">{log}</div>'
@@ -537,4 +541,4 @@ elif not st.session_state.key_approved:
 else:
     main_app()
 
-st.markdown('<div class="footer">Made with 👑 by SURAJ OBEROY | © 2026</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Made with 👑 by SURAJ OBEROY XWD | © 2026</div>', unsafe_allow_html=True)
